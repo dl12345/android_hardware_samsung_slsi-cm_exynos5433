@@ -230,11 +230,10 @@ __MC_CLIENT_LIB_API mcResult_t mcOpenDevice(uint32_t deviceId)
             break;
         }
         if (!checkVersionOkDAEMON(version, &errmsg)) {
-            LOG_E("%s", errmsg);
+            LOG_E("getDaemonVersion error: %s", errmsg);
             mcResult = MC_DRV_ERR_DAEMON_VERSION;
             break;
         }
-        LOG_I(" %s", errmsg);
 
         // Forward device open to the daemon and read result
         SEND_TO_DAEMON(devCon, MC_DRV_CMD_OPEN_DEVICE, deviceId);
