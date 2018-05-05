@@ -20,7 +20,7 @@
 #include <stdint.h>
 
 #include <hardware/hardware.h>
-#include <hardware/keymaster0.h>
+#include <hardware/keymaster1.h>
 
 #include <openssl/evp.h>
 #include <openssl/bio.h>
@@ -66,7 +66,7 @@ struct RSA_Delete {
 };
 typedef UniquePtr<RSA, RSA_Delete> Unique_RSA;
 
-typedef UniquePtr<keymaster0_device_t> Unique_keymaster_device_t;
+typedef UniquePtr<keymaster1_device_t> Unique_keymaster_device_t;
 
 /**
  * Many OpenSSL APIs take ownership of an argument on success but don't free the argument
@@ -92,10 +92,11 @@ static void logOpenSSLError(const char* location) {
     ERR_remove_state(0);
 }
 
-static int exynos_km_generate_keypair(const keymaster0_device_t* dev,
+static int exynos_km_generate_keypair(const keymaster1_device_t* dev,
         const keymaster_keypair_t key_type, const void* key_params,
         uint8_t** keyBlob, size_t* keyBlobLength) {
     teeResult_t ret = TEE_ERR_NONE;
+	(void)dev;
 
     if (key_type != TYPE_RSA) {
         ALOGE("Unsupported key type %d", key_type);
@@ -133,13 +134,14 @@ static int exynos_km_generate_keypair(const keymaster0_device_t* dev,
     return 0;
 }
 
-static int exynos_km_import_keypair(const keymaster0_device_t* dev,
+static int exynos_km_import_keypair(const keymaster1_device_t* dev,
         const uint8_t* key, const size_t key_length,
         uint8_t** key_blob, size_t* key_blob_length) {
     uint8_t kbuf[RSA_KEY_BUFFER_SIZE];
     teeRsaKeyMeta_t metadata;
     uint32_t key_len = 0;
     teeResult_t ret = TEE_ERR_NONE;
+	(void)dev;
 
     if (key == NULL) {
         ALOGE("input key == NULL");
@@ -233,12 +235,13 @@ static int exynos_km_import_keypair(const keymaster0_device_t* dev,
     return 0;
 }
 
-static int exynos_km_get_keypair_public(const keymaster0_device_t* dev,
+static int exynos_km_get_keypair_public(const keymaster1_device_t* dev,
         const uint8_t* key_blob, const size_t key_blob_length,
         uint8_t** x509_data, size_t* x509_data_length) {
     uint32_t bin_mod_len;
     uint32_t bin_exp_len;
     teeResult_t ret = TEE_ERR_NONE;
+	(void)dev;
 
     if (x509_data == NULL || x509_data_length == NULL) {
         ALOGE("output public key buffer == NULL");
@@ -332,12 +335,13 @@ static int exynos_km_get_keypair_public(const keymaster0_device_t* dev,
     return 0;
 }
 
-static int exynos_km_sign_data(const keymaster0_device_t* dev,
+static int exynos_km_sign_data(const keymaster1_device_t* dev,
         const void* params,
         const uint8_t* keyBlob, const size_t keyBlobLength,
         const uint8_t* data, const size_t dataLength,
         uint8_t** signedData, size_t* signedDataLength) {
     teeResult_t ret = TEE_ERR_NONE;
+	(void)dev;
 
     if (data == NULL) {
         ALOGE("input data to sign == NULL");
@@ -380,13 +384,14 @@ static int exynos_km_sign_data(const keymaster0_device_t* dev,
     return 0;
 }
 
-static int exynos_km_verify_data(const keymaster0_device_t* dev,
+static int exynos_km_verify_data(const keymaster1_device_t* dev,
         const void* params,
         const uint8_t* keyBlob, const size_t keyBlobLength,
         const uint8_t* signedData, const size_t signedDataLength,
         const uint8_t* signature, const size_t signatureLength) {
     bool result;
     teeResult_t ret = TEE_ERR_NONE;
+	(void)dev;
 
     if (signedData == NULL || signature == NULL) {
         ALOGE("data or signature buffers == NULL");
@@ -435,7 +440,7 @@ static int exynos_km_open(const hw_module_t* module, const char* name,
     if (strcmp(name, KEYSTORE_KEYMASTER) != 0)
         return -EINVAL;
 
-    Unique_keymaster_device_t dev(new keymaster0_device_t);
+    Unique_keymaster_device_t dev(new keymaster1_device_t);
     if (dev.get() == NULL)
         return -ENOMEM;
 
@@ -463,20 +468,20 @@ static int exynos_km_open(const hw_module_t* module, const char* name,
 }
 
 static struct hw_module_methods_t keystore_module_methods = {
-    open: exynos_km_open,
+    .open = exynos_km_open,
 };
 
 struct keystore_module HAL_MODULE_INFO_SYM
 __attribute__ ((visibility ("default"))) = {
-    common: {
-        tag: HARDWARE_MODULE_TAG,
-        version_major: 1,
-        version_minor: 0,
-        id: KEYSTORE_HARDWARE_MODULE_ID,
-        name: "Keymaster Exynos HAL",
-        author: "Samsung S.LSI",
-        methods: &keystore_module_methods,
-        dso: 0,
-        reserved: {},
+    .common = {
+        .tag = HARDWARE_MODULE_TAG,
+        .version_major = 2,
+        .version_minor = 0,
+        .id = KEYSTORE_HARDWARE_MODULE_ID,
+        .name = "Keymaster Exynos HAL",
+        .author = "Samsung S.LSI",
+        .methods = &keystore_module_methods,
+        .dso = 0,
+        .reserved = {},
     },
 };
